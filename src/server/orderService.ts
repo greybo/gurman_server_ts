@@ -1,11 +1,11 @@
 import { getDatabase, ref, onValue, Database, remove, set } from 'firebase/database';
-import { myApp } from './initFirebase';
+import { myApp } from '../firebase/initFirebase';
 import axios from 'axios';
-import { OrderStatusType } from './models/OrderStatusType'; // Adjust the path as necessary
-import { OrderFirebaseModel } from './models/OrderFirebaseModel';
+import { OrderStatusType } from '../models/OrderStatusType'; // Adjust the path as necessary
+import { OrderFirebaseModel } from '../models/OrderFirebaseModel';
 import MapperToFirebaseModelAll from './MapperToFirebaseModelAll';
-import { OrderDatum, OrderResponse, Product } from './models/OrderResponse';
-import { OrderUpdateBody } from './models/OrderUpdateBody';
+import { OrderDatum, OrderResponse, Product } from '../models/OrderResponse';
+import { OrderUpdateBody } from '../models/OrderUpdateBody';
 
 export class OrderService {
     

@@ -1,10 +1,23 @@
 {
+  "name": "gurman_server_ts",
+  "version": "1.0.0",
+  "main": "dist/app.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/app.ts",
+    "dev": "ts-node-dev --respawn src/app.ts",
+    "serve": "npm run build && node dist/app.js"
+  },
   "dependencies": {
-    "@types/firebase": "^2.4.32",
-    "@types/node": "^22.8.5",
     "axios": "^1.7.7",
-    "firebase": "^11.0.1",
-    "firebase-admin": "^12.7.0",
+    "dotenv": "^16.4.5",
+    "firebase": "^10.14.1",
+    "firebase-admin": "^12.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.5",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
     "typescript": "^5.6.3"
   }
 }

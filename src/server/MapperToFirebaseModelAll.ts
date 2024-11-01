@@ -1,6 +1,6 @@
-import { OrderDatum, OrderResponse, Product } from './models/OrderResponse';
-import { ProductOption,  ShippingMethodOption,ProductSubOption } from './models/OrderMeta';
-import { OrderFirebaseModel, FirebaseProduct, FirebaseShippingData } from './models/OrderFirebaseModel';
+import { OrderDatum, OrderResponse, Product } from '../models/OrderResponse';
+import { ProductOption,  ShippingMethodOption,ProductSubOption } from '../models/OrderMeta';
+import { OrderFirebaseModel, FirebaseProduct, FirebaseShippingData } from '../models/OrderFirebaseModel';
 
 class MapperToFirebaseModelAll {
     private static readonly REVOKED_PRODUCTS = new Set(['14983785304', '14983785305']);
