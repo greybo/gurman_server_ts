@@ -16,6 +16,7 @@ class MapperToFirebaseModelAll {
   
     public mapper(models: OrderFirebaseModel[]): OrderFirebaseModel[] {
       return this.orderResponse?.data?.map(datum => {
+        console.log(`datum:${datum.orderId}`);
         const firebaseModel = models.find(model => model.id === datum.orderId);
         return this.toFirebaseOrderModel(datum, firebaseModel);
       }) || [];
@@ -33,7 +34,7 @@ class MapperToFirebaseModelAll {
         trackingNumber: datum.orderDeliveryData?.[0]?.trackingNumber || '',
         products: this.processProducts(datum),
         shippingData: this.getShippingMethod(datum),
-        idBox: model?.idBox,
+        idBox: model?.idBox ?? '0',
         syncSalesDrive: model?.syncSalesDrive ?? false,
         forCheck: model?.forCheck ?? false
       };

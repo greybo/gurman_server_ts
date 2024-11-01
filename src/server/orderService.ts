@@ -75,7 +75,7 @@ export class OrderService {
         try {
             let results: OrderResponse[];
             
-            if (this.updateAtLast === "0") {
+            if (false/*this.updateAtLast === "0"*/) {
                 console.log(`Fetching from salesDrive by status=${this.ids.join(", ")}`);
                 results = await Promise.all(
                     this.ids.map(id => this.getOrderByStatus(id))
