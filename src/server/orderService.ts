@@ -1,15 +1,16 @@
 import { getDatabase, ref, onValue, Database, remove, set } from 'firebase/database';
-import { myApp } from '../firebase/initFirebase';
 import axios from 'axios';
-import { OrderStatusType } from '../models/OrderStatusType'; // Adjust the path as necessary
+import { OrderStatusType } from '../models/OrderStatusType'; // This is a custom enum
 import { OrderFirebaseModel } from '../models/OrderFirebaseModel';
 import MapperToFirebaseModelAll from './MapperToFirebaseModelAll';
-import { OrderDatum, OrderResponse, Product } from '../models/OrderResponse';
+import {  OrderResponse } from '../models/OrderResponse';
 import { OrderUpdateBody } from '../models/OrderUpdateBody';
+import serviceAccount from '../../serviceAccountKey.json';
+var admin = require("firebase-admin");
 
 export class OrderService {
-    
-    private firebaseDB: Database =  getDatabase(myApp);
+
+    private firebaseDB ;//=  getDatabase(myApp);
 
     private allFirebaseModel: OrderFirebaseModel[] = [];
     private readonly ids: number[];
@@ -22,6 +23,13 @@ export class OrderService {
             baseURL: process.env.SALES_DRIVE_BASE_URL
         })
     ) {
+        admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount),
+            databaseURL: "https://mytest-d3b9f.firebaseio.com"
+        });
+
+        this.firebaseDB = admin.database();
+
         this.ids = [
             OrderStatusType.ForDispatch,
             OrderStatusType.Collect,
@@ -32,38 +40,10 @@ export class OrderService {
         this.updateAtLast = "0";
     }
 
-    // async startService(): Promise<void> {
-    //     // Setup Firebase listener
-    //     const ordersRef = ref(this.firebaseDB, `${this.orderDBPath}`);
-        
-    //     onValue(ordersRef, async (snapshot) => {
-    //         const data = snapshot.val() as Record<string, OrderFirebaseModel>;
-    //         const models = Object.values(data) as OrderFirebaseModel[];
-    //         if (!data) return;
-    //         this.allFirebaseModel = models
-    //         this.allFirebaseModel = (Object.values(data) as OrderFirebaseModel[])
-    //             .filter((model: OrderFirebaseModel) => {
-    //                 if (!this.ids.includes(model.statusId)) {
-    //                     remove(ref(this.firebaseDB, `${this.orderDBPath}/${model.id}`));
-    //                     return false;
-    //                 }
-    //                 return true;
-    //             });
-
-    //         const syncList = this.allFirebaseModel.filter(model => model.syncSalesDrive);
-    //         await this.handleUpdateSalesDrive(syncList);
-    //     });
-
-    //     // Start periodic fetching
-    //     setInterval(async () => {
-    //         await this.fetchOrdersAll();
-    //     }, 62000);
-    // }
-
     async startService(): Promise<void> {
         // Setup Firebase listener
         const ordersRef = ref(this.firebaseDB, `${this.orderDBPath}`);
-        
+        console.log(`Start fetching from firebase`);
         onValue(ordersRef, async (snapshot) => {
             const data = snapshot.val();
             if (!data) return;
@@ -71,6 +51,7 @@ export class OrderService {
             this.allFirebaseModel = (Object.values(data) as OrderFirebaseModel[])
                 .filter((model: OrderFirebaseModel) => {
                     if (!this.ids.includes(model.statusId)) {
+                        this.firebaseDB.ref(`${this.orderDBPath}/${model.id}`).remove();
                         remove(ref(this.firebaseDB, `${this.orderDBPath}/${model.id}`));
                         return false;
                     }
@@ -80,15 +61,16 @@ export class OrderService {
             const syncList = this.allFirebaseModel.filter(model => model.syncSalesDrive);
             await this.handleUpdateSalesDrive(syncList);
         });
-
+        console.log(`Start fetching from salesDrive`);
         // Start periodic fetching
+        await this.fetchOrdersAll();
         setInterval(async () => {
             await this.fetchOrdersAll();
         }, 62000);
     }
 
     private async fetchOrdersAll(): Promise<OrderFirebaseModel[] | null> {
-        if (process.env.NODE_ENV !== 'development') return null;
+        // if (process.env.NODE_ENV !== 'development') return null;
 
         try {
             let results: OrderResponse[];
@@ -110,8 +92,9 @@ export class OrderService {
             for (const model of convertedModels) {
                 if ((model.updateAt ?? '') > this.updateAtLast) {
                     if (this.ids.includes(model.statusId)) {
-                        console.log(`Adding to Firebase id=${model.id}, status=${model.statusId}`);
-                        await set(ref(this.firebaseDB, `${this.orderDBPath}/${model.id}`), model);
+                        console.log(`Adding to Firebase id=${model.id}, status=${model.statusId}, model=${model}`);
+                        await admin.database().ref(`${this.orderDBPath}/${model.id}`).set(model);
+                        // await set(ref(this.firebaseDB, `${this.orderDBPath}/${model.id}`), model);
                     } else {
                         const existingModel = this.allFirebaseModel.find(m => m.id === model.id);
                         if (existingModel) {
@@ -148,7 +131,7 @@ export class OrderService {
 
     private async getOrderByStatus(statusId: number): Promise<OrderResponse | null> {
         try {
-            const response = await this.apiClient.get('/list', {
+            const response = await this.apiClient.get('/list/', {
                 params: {
                     'filter[statusId]': statusId.toString()
                 },
@@ -163,7 +146,7 @@ export class OrderService {
 
     private async getOrderByStatusUpdateAt(updateFrom: string): Promise<OrderResponse | null> {
         try {
-            const response = await this.apiClient.get('/list', {
+            const response = await this.apiClient.get('/list/', {
                 params: {
                     'filter[updateAt][from]': updateFrom
                 },
@@ -213,7 +196,7 @@ export class OrderService {
 
     private getHeaderWithApiKey(): Record<string, string> {
         return {
-            'Authorization': `Bearer ${process.env.API_KEY_SALES_DRIVE}`,
+            'Form-Api-Key': process.env.SALES_DRIVE_ORDER_FETCH_LIST_KEY as string,
             'Content-Type': 'application/json'
         };
     }
