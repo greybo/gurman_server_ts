@@ -26,6 +26,8 @@ export class ApiSalesDriveService {
                 headers: this.getHeaderWithApiKey()
             });
 
+            // console.log('Fetch by status - success:', response.data.data.length);
+
             return response.data;
         } catch (error) {
             console.error(`Error fetching orders for status ${statusId}:`, error);
@@ -41,18 +43,8 @@ export class ApiSalesDriveService {
                 },
                 headers: this.getHeaderWithApiKey()
             });
-            if (response.data && response.data.data) {
-                console.log('Fetch by updateDate1 - length =', response.data.data.length);
-            } else {
-                console.log('Fetch by updateDate1 - data is undefined');
-            }
-            const list = response.data.data;
-            if (list.length > 0) {
-              const joinString =  list.map((order) => { order.id }).join(", ");
-                console.log('Fetch by updateDate2: orderIds:', joinString);
-            } else {
-                console.log('Fetch by updateDate2 - data is undefined or empty');
-            }
+        
+            // console.log('Fetch by updateDate - success:', response.data.data.length);
             return response.data;
         } catch (error) {
             console.error('Error fetching orders by updateAt:', error);

@@ -32,7 +32,7 @@ export class OrderService {
             OrderStatusType.Salle
         ];
 
-        this.updateAtLast = "0";
+        this.updateAtLast = "2024-10-02 20:24:40";
     }
 
     async startService(): Promise<void> {
@@ -85,16 +85,17 @@ export class OrderService {
             const convertedModels = this.convertToFirebaseModel(results);
 
             if (!convertedModels) return null;
-
+            console.log(`result firebaseModels size=${convertedModels.length}`);
+            let i = 0; 
             for (const model of convertedModels) {
-                if ((model.updateAt ?? '') > this.updateAtLast) {
+                if ((model.updateAt ?? '') > this.updateAtLast && this.ids.includes(model.statusId)) {
                     if (this.ids.includes(model.statusId)) {
-                        console.log(`Adding to Firebase id=${model.id}, status=${model.statusId}`);
+                        console.log(`Adding to Firebase  index=${i++}, id=${model.id}, status=${model.statusId}`);
                         await admin.database().ref(`${this.orderDBPath}/${model.id}`).set(model);
                     } else {
                         const existingModel = this.allFirebaseModel.find(m => m.id === model.id);
                         if (existingModel) {
-                            console.log(`Removing from Firebase: id=${model.id}, status=${model.statusId}`);
+                            console.log(`Removing from Firebase: , status=${model.statusId}`);
                             await admin.database().ref(`${this.orderDBPath}/${model.id}`).remove();
                         }
                     }
