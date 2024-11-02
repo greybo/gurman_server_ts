@@ -54,15 +54,19 @@ export class OrderService {
                 });
 
             const syncList = this.allFirebaseModel.filter(model => model.syncSalesDrive);
+            console.log(`Firebase change data event: size=${syncList.length}`);
             await this.handleUpdateSalesDrive(syncList);
         });
 
         console.log(`Start fetching from salesDrive`);
-        // Start periodic fetching
+
         await this.fetchOrdersSalesDrive();
-        setInterval(async () => {
-            await this.fetchOrdersSalesDrive();
-        }, 62000);
+
+        //TODO Uncomment this to enable periodic fetching
+        // Start periodic fetching
+        // setInterval(async () => {
+        //     await this.fetchOrdersSalesDrive();
+        // }, 62000);
     }
 
     private async fetchOrdersSalesDrive(): Promise<OrderFirebaseModel[] | null> {
@@ -86,16 +90,18 @@ export class OrderService {
 
             if (!convertedModels) return null;
             console.log(`result firebaseModels size=${convertedModels.length}`);
-            let i = 0; 
+            let i = 0;
             for (const model of convertedModels) {
-                if ((model.updateAt ?? '') > this.updateAtLast && this.ids.includes(model.statusId)) {
+                const isAdd = (model.updateAt ?? '') > this.updateAtLast && this.ids.includes(model.statusId)
+                console.log(`FirebaseModel  index=${++i}, id=${model.id}, status=${model.statusId}`);
+                if ((model.updateAt ?? '') > this.updateAtLast) {
                     if (this.ids.includes(model.statusId)) {
-                        console.log(`Adding to Firebase  index=${i++}, id=${model.id}, status=${model.statusId}`);
+                        console.log(`   Adding to Firebase  index=${i}, id=${model.id}, status=${model.statusId}`);
                         await admin.database().ref(`${this.orderDBPath}/${model.id}`).set(model);
                     } else {
                         const existingModel = this.allFirebaseModel.find(m => m.id === model.id);
                         if (existingModel) {
-                            console.log(`Removing from Firebase: , status=${model.statusId}`);
+                            console.log(`   Removing from Firebase: index=${i}, status=${model.statusId}`);
                             await admin.database().ref(`${this.orderDBPath}/${model.id}`).remove();
                         }
                     }
@@ -114,11 +120,12 @@ export class OrderService {
     private async handleUpdateSalesDrive(list: OrderFirebaseModel[]): Promise<void> {
         for (const firebaseOrder of list) {
             try {
-                await this.api.postUpdateOrderRemote(this.api.makeOrderBody(firebaseOrder));
+                await this.api.postUpdateOrder(this.api.makeOrderBody(firebaseOrder));
 
-                await set(ref(this.firebaseDB, `${this.orderDBPath}/${firebaseOrder.id}`), {
-                    syncSalesDrive: false
-                });
+                // await set(ref(this.firebaseDB, `${this.orderDBPath}/${firebaseOrder.id}`), 
+                await this.firebaseDB
+                    .ref(`${this.orderDBPath}/${firebaseOrder.id}/syncSalesDrive`)
+                    .set(false);
                 console.log('Updated status to salesDrive');
             } catch (error) {
                 console.error('Error updating salesDrive:', error);

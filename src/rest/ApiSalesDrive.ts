@@ -63,7 +63,7 @@ export class ApiSalesDriveService {
         };
     }
 
-    async postUpdateOrderRemote(body: OrderUpdateBody): Promise<any> {
+    async postUpdateOrder(body: OrderUpdateBody): Promise<any> {
         const response = await this.apiClient.post('/update/', body, {
             headers: this.getBaseHeader()
         });
