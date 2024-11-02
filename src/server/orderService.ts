@@ -1,9 +1,8 @@
 import { getDatabase, ref, onValue, Database, remove, set } from 'firebase/database';
-import axios from 'axios';
 import { OrderStatusType } from '../models/OrderStatusType'; // This is a custom enum
 import { OrderFirebaseModel } from '../models/OrderFirebaseModel';
 import MapperToFirebaseModelAll from './MapperToFirebaseModelAll';
-import { OrderResponse } from '../models/OrderResponse2';
+import { OrderResponse } from '../models/OrderResponseClass';
 import serviceAccount from '../../serviceAccountKey.json';
 import { ApiSalesDriveService } from '../rest/apiSalesDriveService';
 var admin = require("firebase-admin");
@@ -18,11 +17,7 @@ export class OrderService {
     private updateAtLast: string;
     private orderDBPath = 'debug2/orders';
 
-    constructor(
-        // private apiClient = axios.create({
-        //     baseURL: process.env.SALES_DRIVE_BASE_URL
-        // })
-    ) {
+    constructor() {
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
             databaseURL: "https://mytest-d3b9f.firebaseio.com"
@@ -51,8 +46,8 @@ export class OrderService {
             this.allFirebaseModel = (Object.values(data) as OrderFirebaseModel[])
                 .filter((model: OrderFirebaseModel) => {
                     if (!this.ids.includes(model.statusId)) {
-                        this.firebaseDB.ref(`${this.orderDBPath}/${model.id}`).remove();
-                        remove(ref(this.firebaseDB, `${this.orderDBPath}/${model.id}`));
+                        console.log(`Firebase remove: status=${model.statusId}`);
+                        admin.database().ref(`${this.orderDBPath}/${model.id}`).remove();
                         return false;
                     }
                     return true;
@@ -61,21 +56,22 @@ export class OrderService {
             const syncList = this.allFirebaseModel.filter(model => model.syncSalesDrive);
             await this.handleUpdateSalesDrive(syncList);
         });
+
         console.log(`Start fetching from salesDrive`);
         // Start periodic fetching
-        await this.fetchOrdersAll();
+        await this.fetchOrdersSalesDrive();
         setInterval(async () => {
-            await this.fetchOrdersAll();
+            await this.fetchOrdersSalesDrive();
         }, 62000);
     }
 
-    private async fetchOrdersAll(): Promise<OrderFirebaseModel[] | null> {
+    private async fetchOrdersSalesDrive(): Promise<OrderFirebaseModel[] | null> {
         // if (process.env.NODE_ENV !== 'development') return null;
 
         try {
             let results: OrderResponse[];
 
-            if (false/*this.updateAtLast === "0"*/) {
+            if (this.updateAtLast === "0") {
                 console.log(`Fetching from salesDrive by status=${this.ids.join(", ")}`);
                 results = await Promise.all(
                     this.ids.map(id => this.api.getOrderByStatus(id))
@@ -87,21 +83,19 @@ export class OrderService {
             }
 
             const convertedModels = this.convertToFirebaseModel(results);
-            console.log(`Convert to model: ${convertedModels.length}`);
 
             if (!convertedModels) return null;
 
             for (const model of convertedModels) {
                 if ((model.updateAt ?? '') > this.updateAtLast) {
                     if (this.ids.includes(model.statusId)) {
-                        console.log(`Adding to Firebase id=${model.id}, status=${model.statusId}, model=${model}`);
+                        console.log(`Adding to Firebase id=${model.id}, status=${model.statusId}`);
                         await admin.database().ref(`${this.orderDBPath}/${model.id}`).set(model);
-                        // await set(ref(this.firebaseDB, `${this.orderDBPath}/${model.id}`), model);
                     } else {
                         const existingModel = this.allFirebaseModel.find(m => m.id === model.id);
                         if (existingModel) {
                             console.log(`Removing from Firebase: id=${model.id}, status=${model.statusId}`);
-                            await remove(ref(this.firebaseDB, `${this.orderDBPath}/${model.id}`));
+                            await admin.database().ref(`${this.orderDBPath}/${model.id}`).remove();
                         }
                     }
                 }

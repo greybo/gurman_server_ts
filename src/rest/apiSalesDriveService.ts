@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { OrderResponse, OrderDatum, ApiResponse } from '../models/OrderResponse2';
+import { OrderResponse, OrderDatum, ApiResponse } from '../models/OrderResponseClass';
 import { OrderFirebaseModel } from '../models/OrderFirebaseModel';
 import { OrderUpdateBody } from '../models/OrderUpdateBody';
 
@@ -46,8 +46,10 @@ export class ApiSalesDriveService {
             } else {
                 console.log('Fetch by updateDate1 - data is undefined');
             }
-            if (response.data && response.data.data && response.data.data.length > 0) {
-                console.log('Fetch by updateDate2: orderId:', response.data.data[0].id);
+            const list = response.data.data;
+            if (list.length > 0) {
+              const joinString =  list.map((order) => { order.id }).join(", ");
+                console.log('Fetch by updateDate2: orderIds:', joinString);
             } else {
                 console.log('Fetch by updateDate2 - data is undefined or empty');
             }

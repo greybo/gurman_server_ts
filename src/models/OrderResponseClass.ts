@@ -1,6 +1,4 @@
-// import axios from 'axios';
 
-// Base interfaces for API response
 interface ApiResponse<T> {
   data: T;
   meta: Meta;
@@ -132,12 +130,6 @@ interface ComplectItem {
   id: string;
 }
 
-// interface ComplectItem {
-//   complectId: number;
-//   productId: number;
-//   count: number;
-// }
-
 interface StatusMeta {
   type: string;
   name: string;
@@ -176,67 +168,6 @@ interface Totals {
   expenses: number;
 }
 
-// // Axios instance setup example
-// const apiClient = axios.create({
-//   baseURL: process.env.SALES_DRIVE_BASE_URL
-// });
-
-// // Function to parse response
-// async function fetchAndParseOrders(statusId: number): Promise<OrderResponse> {
-//   try {
-//     const response = await apiClient.get<ApiResponse<OrderDatum[]>>('/list/', {
-//       params: {
-//         'filter[statusId]': statusId.toString()
-//       },
-//       headers: this.getHeaderWithApiKey()
-//     });
-
-//     // Basic validation
-//     if (response.data.status !== 'success') {
-//       throw new Error('API request failed');
-//     }
-
-//     return {
-//       data: response.data.data,
-//       meta: response.data.meta
-//     };
-//   } catch (error) {
-//     console.error('Error fetching orders:', error);
-//     throw error;
-//   }
-// }
-
-// // Usage example
-// async function getOrders() {
-//   try {
-//     const orders = await fetchAndParseOrders('your-api-url');
-
-//     // Access order data
-//     orders.data.forEach(order => {
-//       console.log(`Order ID: ${order.id}`);
-//       console.log(`Customer: ${order.primaryContact.fName} ${order.primaryContact.lName}`);
-//       console.log(`Products: ${order.products.length}`);
-
-//       // Access delivery data
-//       const delivery = order.ordDeliveryData[0];
-//       if (delivery) {
-//         console.log(`Delivery to: ${delivery.cityName}`);
-//         console.log(`Tracking number: ${delivery.trackingNumber}`);
-//       }
-//     });
-
-//     // Access meta data
-//     const shippingMethods = orders.meta.fields.shippingMethod.options;
-//     console.log('Available shipping methods:', shippingMethods.map(m => m.text));
-
-//   } catch (error) {
-//     console.error('Failed to get orders:', error);
-//   }
-// }
-
-
-
-
 export {
   type ApiResponse,
   type OrderResponse,
@@ -254,6 +185,4 @@ export {
   type StatusMeta,
   type UserMeta,
   type Pagination,
-  // fetchAndParseOrders,
-  // apiClient
 };

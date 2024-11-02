@@ -1,7 +1,7 @@
 import {
   OrderDatum, OrderResponse, Product,
   ShippingMethodOption, ProductOption, ProductSubOption
-} from '../models/OrderResponse2';
+} from '../models/OrderResponseClass';
 // import { ProductOption,  ShippingMethodOption,ProductSubOption } from '../models/OrderMeta';
 import { OrderFirebaseModel, FirebaseProduct, FirebaseShippingData } from '../models/OrderFirebaseModel';
 
