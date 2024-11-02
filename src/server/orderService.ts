@@ -2,9 +2,9 @@ import { getDatabase, ref, onValue, Database, remove, set } from 'firebase/datab
 import { OrderStatusType } from '../models/OrderStatusType'; // This is a custom enum
 import { OrderFirebaseModel } from '../models/OrderFirebaseModel';
 import MapperToFirebaseModelAll from './MapperToFirebaseModelAll';
-import { OrderResponse } from '../models/OrderResponseClass';
+import { OrderResponse } from '../models/OrderResponse';
 import serviceAccount from '../../serviceAccountKey.json';
-import { ApiSalesDriveService } from '../rest/apiSalesDriveService';
+import { ApiSalesDriveService } from '../rest/ApiSalesDrive';
 var admin = require("firebase-admin");
 
 export class OrderService {

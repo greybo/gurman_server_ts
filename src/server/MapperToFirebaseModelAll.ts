@@ -1,8 +1,7 @@
 import {
   OrderDatum, OrderResponse, Product,
   ShippingMethodOption, ProductOption, ProductSubOption
-} from '../models/OrderResponseClass';
-// import { ProductOption,  ShippingMethodOption,ProductSubOption } from '../models/OrderMeta';
+} from '../models/OrderResponse';
 import { OrderFirebaseModel, FirebaseProduct, FirebaseShippingData } from '../models/OrderFirebaseModel';
 
 class MapperToFirebaseModelAll {
@@ -21,7 +20,6 @@ class MapperToFirebaseModelAll {
 
   public mapper(models: OrderFirebaseModel[]): OrderFirebaseModel[] {
     return this.orderResponse?.data?.map(datum => {
-      // console.log(`mapper:${datum.id}`);
       const firebaseModel = models.find(model => model.id === datum.id);
       return this.toFirebaseOrderModel(datum, firebaseModel);
     }) || [];
@@ -69,17 +67,6 @@ class MapperToFirebaseModelAll {
   private getShippingMethod(datum: OrderDatum): FirebaseShippingData {
     const option = this.shippingOptions.find(opt => opt.value === datum.shipping_method);
     return option ? { text: option.text, value: option.value } : { text: '', value: 0 };
-    // const option = this.shippingOptions.find(opt => opt.value === datum.shipping_method);
-    // if (option) {
-    //   return {
-    //     text: option.text,
-    //     value: option.value
-    //   };
-    // }
-    // return {
-    //   text: option?.text || '',
-    //   value: option?.value || 0
-    // };
   }
 
   private toFirebaseProducts(product: Product): FirebaseProduct[] {
