@@ -3,15 +3,15 @@ import axios from 'axios';
 import { OrderStatusType } from '../models/OrderStatusType'; // This is a custom enum
 import { OrderFirebaseModel } from '../models/OrderFirebaseModel';
 import MapperToFirebaseModelAll from './MapperToFirebaseModelAll';
-import {  OrderResponse } from '../models/OrderResponse';
-import { OrderUpdateBody } from '../models/OrderUpdateBody';
+import { OrderResponse } from '../models/OrderResponse2';
 import serviceAccount from '../../serviceAccountKey.json';
+import { ApiSalesDriveService } from '../rest/apiSalesDriveService';
 var admin = require("firebase-admin");
 
 export class OrderService {
 
-    private firebaseDB ;//=  getDatabase(myApp);
-
+    private firebaseDB;//=  getDatabase(myApp);
+    private api: ApiSalesDriveService;
     private allFirebaseModel: OrderFirebaseModel[] = [];
     private readonly ids: number[];
 
@@ -19,15 +19,15 @@ export class OrderService {
     private orderDBPath = 'debug2/orders';
 
     constructor(
-        private apiClient = axios.create({
-            baseURL: process.env.SALES_DRIVE_BASE_URL
-        })
+        // private apiClient = axios.create({
+        //     baseURL: process.env.SALES_DRIVE_BASE_URL
+        // })
     ) {
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
             databaseURL: "https://mytest-d3b9f.firebaseio.com"
         });
-
+        this.api = new ApiSalesDriveService()
         this.firebaseDB = admin.database();
 
         this.ids = [
@@ -36,7 +36,7 @@ export class OrderService {
             OrderStatusType.CollectDone,
             OrderStatusType.Salle
         ];
-        
+
         this.updateAtLast = "0";
     }
 
@@ -74,19 +74,21 @@ export class OrderService {
 
         try {
             let results: OrderResponse[];
-            
+
             if (false/*this.updateAtLast === "0"*/) {
                 console.log(`Fetching from salesDrive by status=${this.ids.join(", ")}`);
                 results = await Promise.all(
-                    this.ids.map(id => this.getOrderByStatus(id))
+                    this.ids.map(id => this.api.getOrderByStatus(id))
                 ) as OrderResponse[];
             } else {
                 console.log(`Fetching from salesDrive by updateAtLast=${this.updateAtLast}`);
-                const response = await this.getOrderByStatusUpdateAt(this.updateAtLast) as OrderResponse;
+                const response = await this.api.getOrderByStatusUpdateAt(this.updateAtLast) as OrderResponse;
                 results = [response];
             }
 
             const convertedModels = this.convertToFirebaseModel(results);
+            console.log(`Convert to model: ${convertedModels.length}`);
+
             if (!convertedModels) return null;
 
             for (const model of convertedModels) {
@@ -99,7 +101,7 @@ export class OrderService {
                         const existingModel = this.allFirebaseModel.find(m => m.id === model.id);
                         if (existingModel) {
                             console.log(`Removing from Firebase: id=${model.id}, status=${model.statusId}`);
-                            await remove(ref(this.firebaseDB,`${this.orderDBPath}/${model.id}`));
+                            await remove(ref(this.firebaseDB, `${this.orderDBPath}/${model.id}`));
                         }
                     }
                 }
@@ -117,7 +119,7 @@ export class OrderService {
     private async handleUpdateSalesDrive(list: OrderFirebaseModel[]): Promise<void> {
         for (const firebaseOrder of list) {
             try {
-                await this.postUpdateOrderRemote(this.makeOrderBody(firebaseOrder));
+                await this.api.postUpdateOrderRemote(this.api.makeOrderBody(firebaseOrder));
 
                 await set(ref(this.firebaseDB, `${this.orderDBPath}/${firebaseOrder.id}`), {
                     syncSalesDrive: false
@@ -129,36 +131,6 @@ export class OrderService {
         }
     }
 
-    private async getOrderByStatus(statusId: number): Promise<OrderResponse | null> {
-        try {
-            const response = await this.apiClient.get('/list/', {
-                params: {
-                    'filter[statusId]': statusId.toString()
-                },
-                headers: this.getHeaderWithApiKey()
-            });
-            return response.data;
-        } catch (error) {
-            console.error(`Error fetching orders for status ${statusId}:`, error);
-            return null;
-        }
-    }
-
-    private async getOrderByStatusUpdateAt(updateFrom: string): Promise<OrderResponse | null> {
-        try {
-            const response = await this.apiClient.get('/list/', {
-                params: {
-                    'filter[updateAt][from]': updateFrom
-                },
-                headers: this.getHeaderWithApiKey()
-            });
-            return response.data;
-        } catch (error) {
-            console.error('Error fetching orders by updateAt:', error);
-            return null;
-        }
-    }
-
     private convertToFirebaseModel(responses: OrderResponse[]): OrderFirebaseModel[] {
         // Implementation of MapperToFirebaseModelAll logic here
         // This would need to be adapted based on your specific needs
@@ -166,7 +138,7 @@ export class OrderService {
         return responses
             .filter(Boolean)
             .flatMap(response => {
-               const existingModels =  this.allFirebaseModel
+                const existingModels = this.allFirebaseModel
 
                 const mapper = new MapperToFirebaseModelAll(response);
                 return mapper.mapper(existingModels);
@@ -174,37 +146,6 @@ export class OrderService {
                 // return response.data?.map((datum: any) => this.mapDatumToFirebaseModel(datum));
             })
             .filter(Boolean);
-    }
-
-    private makeOrderBody(order: OrderFirebaseModel): OrderUpdateBody {
-        return {
-            data: {
-                statusId: order.statusId.toString()
-            },
-            externalId: order.externalId || '',
-            form: process.env.SALES_DRIVE_ORDER_UPDATE_FROM as string,
-            id: (order.id ?? '').toString()
-        };
-    }
-
-    private async postUpdateOrderRemote(body: any): Promise<any> {
-        const response = await this.apiClient.post('/update/', body, {
-            headers: this.getBaseHeader()
-        });
-        return response.data;
-    }
-
-    private getHeaderWithApiKey(): Record<string, string> {
-        return {
-            'Form-Api-Key': process.env.SALES_DRIVE_ORDER_FETCH_LIST_KEY as string,
-            'Content-Type': 'application/json'
-        };
-    }
-
-    private getBaseHeader(): Record<string, string> {
-        return {
-            'Content-Type': 'application/json'
-        };
     }
 
     private saveLastUpdateAt(models: OrderFirebaseModel[]): void {
