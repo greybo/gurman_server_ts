@@ -1,11 +1,13 @@
-import { getDatabase, ref, onValue, Database, remove, set } from 'firebase/database';
+// import { getDatabase, ref, onValue, Database, remove, set } from 'firebase/database';
 import { OrderStatusType } from '../models/OrderStatusType'; // This is a custom enum
 import { OrderFirebaseModel } from '../models/OrderFirebaseModel';
 import MapperToFirebaseModelAll from './MapperToFirebaseModelAll';
 import { OrderResponse } from '../models/OrderResponse';
-import serviceAccount from '../../serviceAccountKey_warehouse.json';
+// import serviceAccount from '../../serviceAccountKey_warehouse.json';
 import { ApiSalesDriveService } from '../rest/ApiSalesDrive';
-var admin = require("firebase-admin");
+// var admin = require("firebase-admin");
+import { OrderFirebaseDB } from '../firebase/OrderFirebaseDB';
+
 
 export class OrderService {
 
@@ -13,15 +15,15 @@ export class OrderService {
     private api: ApiSalesDriveService;
     private allFirebaseModel: OrderFirebaseModel[] = [];
     private readonly ids: number[];
-
+    private orderDB = new OrderFirebaseDB();
     private updateAtLast: string;
     private orderDBPath = 'DEBUG/orders';
 
     constructor() {
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
-            databaseURL: "https://warehouse-bc3d6-default-rtdb.europe-west1.firebasedatabase.app"
-        });
+        // admin.initializeApp({
+        //     credential: admin.credential.cert(serviceAccount),
+        //     databaseURL: "https://warehouse-bc3d6-default-rtdb.europe-west1.firebasedatabase.app"
+        // });
         this.api = new ApiSalesDriveService()
         // this.firebaseDB = admin.database();
 
@@ -48,15 +50,31 @@ export class OrderService {
                     if (!this.ids.includes(model.statusId)) {
                         console.log(`Firebase remove: status=${model.statusId}`);
                         admin.database().ref(`${this.orderDBPath}/${model.id}`).remove();
+                        // this.orderDB.removeOrder(model.id  ?? 0);
                         return false;
                     }
                     return true;
                 });
 
-            const syncList = this.allFirebaseModel.filter(model => model.syncSalesDrive);
-            console.log(`Firebase change data event: size=${syncList.length}`);
-            await this.handleUpdateSalesDrive(syncList);
+
         });
+        this.orderDB.listenerOrder((allModel) => {
+            this.allFirebaseModel = allModel;
+            allModel.filter((model: OrderFirebaseModel) => {
+                if (!this.ids.includes(model.statusId)) {
+                    console.log(`Firebase remove: status=${model.statusId}`);
+                    // admin.database().ref(`${this.orderDBPath}/${model.id}`).remove();
+                    this.orderDB.removeOrder(model.id ?? 0);
+                    return false;
+                }
+                return true;
+            });
+        });
+
+
+        const syncList = this.allFirebaseModel.filter(model => model.syncSalesDrive);
+        console.log(`Firebase change data event: size=${syncList.length}`);
+        await this.handleUpdateSalesDrive(syncList);
 
         console.log(`Start fetching from salesDrive`);
 
