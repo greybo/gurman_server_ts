@@ -3,27 +3,27 @@ import { OrderStatusType } from '../models/OrderStatusType'; // This is a custom
 import { OrderFirebaseModel } from '../models/OrderFirebaseModel';
 import MapperToFirebaseModelAll from './MapperToFirebaseModelAll';
 import { OrderResponse } from '../models/OrderResponse';
-import serviceAccount from '../../serviceAccountKey.json';
+import serviceAccount from '../../serviceAccountKey_warehouse.json';
 import { ApiSalesDriveService } from '../rest/ApiSalesDrive';
 var admin = require("firebase-admin");
 
 export class OrderService {
 
-    private firebaseDB;//=  getDatabase(myApp);
+    // private firebaseDB;//=  getDatabase(myApp);
     private api: ApiSalesDriveService;
     private allFirebaseModel: OrderFirebaseModel[] = [];
     private readonly ids: number[];
 
     private updateAtLast: string;
-    private orderDBPath = 'debug2/orders';
+    private orderDBPath = 'DEBUG/orders';
 
     constructor() {
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
-            databaseURL: "https://mytest-d3b9f.firebaseio.com"
+            databaseURL: "https://warehouse-bc3d6-default-rtdb.europe-west1.firebasedatabase.app"
         });
         this.api = new ApiSalesDriveService()
-        this.firebaseDB = admin.database();
+        // this.firebaseDB = admin.database();
 
         this.ids = [
             OrderStatusType.ForDispatch,
@@ -37,7 +37,7 @@ export class OrderService {
 
     async startService(): Promise<void> {
         // Setup Firebase listener
-        const ordersRef = ref(this.firebaseDB, `${this.orderDBPath}`);
+        const ordersRef = ref(admin.database(), `${this.orderDBPath}`);
         console.log(`Start fetching from firebase`);
         onValue(ordersRef, async (snapshot) => {
             const data = snapshot.val();
@@ -64,9 +64,9 @@ export class OrderService {
 
         //TODO Uncomment this to enable periodic fetching
         // Start periodic fetching
-        // setInterval(async () => {
-        //     await this.fetchOrdersSalesDrive();
-        // }, 62000);
+        setInterval(async () => {
+            await this.fetchOrdersSalesDrive();
+        }, 62000);
     }
 
     private async fetchOrdersSalesDrive(): Promise<OrderFirebaseModel[] | null> {
@@ -92,7 +92,6 @@ export class OrderService {
             console.log(`result firebaseModels size=${convertedModels.length}`);
             let i = 0;
             for (const model of convertedModels) {
-                const isAdd = (model.updateAt ?? '') > this.updateAtLast && this.ids.includes(model.statusId)
                 console.log(`FirebaseModel  index=${++i}, id=${model.id}, status=${model.statusId}`);
                 if ((model.updateAt ?? '') > this.updateAtLast) {
                     if (this.ids.includes(model.statusId)) {
@@ -123,7 +122,7 @@ export class OrderService {
                 await this.api.postUpdateOrder(this.api.makeOrderBody(firebaseOrder));
 
                 // await set(ref(this.firebaseDB, `${this.orderDBPath}/${firebaseOrder.id}`), 
-                await this.firebaseDB
+                await admin.database()
                     .ref(`${this.orderDBPath}/${firebaseOrder.id}/syncSalesDrive`)
                     .set(false);
                 console.log('Updated status to salesDrive');
@@ -154,7 +153,7 @@ export class OrderService {
         const maxUpdateAt = models.reduce((max, model) => {
             return (model.updateAt ?? '') > max ? (model.updateAt ?? '') : max;
         }, this.updateAtLast);
-
+        console.log(`maxUpdateAt=${maxUpdateAt}, this.updateAtLast=${this.updateAtLast}`);
         if (maxUpdateAt > this.updateAtLast) {
             this.updateAtLast = maxUpdateAt;
             // Save to persistent storage if needed
