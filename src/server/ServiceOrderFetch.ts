@@ -3,7 +3,7 @@ import { OrderStatusType } from '../models/OrderStatusType'; // This is a custom
 import { OrderFirebaseModel } from '../models/OrderFirebaseModel';
 import MapperToFirebaseModelAll from './MapperToFirebaseModelAll';
 import { OrderResponse } from '../models/OrderResponse';
-import serviceAccount from '../../serviceAccountKey_warehouse.json';
+import serviceAccount from '../../serviceAccountKey_prod.json';
 import { ApiSalesDriveService } from '../rest/ApiSalesDrive';
 var admin = require("firebase-admin");
 
